@@ -183,7 +183,7 @@ async function main() {
   log('🏢', 'Creating GTM company...');
   const company = await api('POST', '/api/companies', {
     name: `GTM — ${PRODUCT_NAME}`,
-    goal: `Launch ${PRODUCT_NAME} and reach first paying customers.\n\n${PRODUCT_DESC}`,
+    description: `Launch ${PRODUCT_NAME} and reach first paying customers.\n\n${PRODUCT_DESC}`,
   });
   const companyId = company.id;
   const prefix = company.prefix || company.identifierPrefix;
@@ -225,7 +225,7 @@ async function main() {
   // 3. Install skills
   // -----------------------------------------------------------------------
   const skillNames = [
-    'gtm-strategist', 'gtm-brand', 'gtm-web',
+    'gtm-director', 'gtm-strategist', 'gtm-brand', 'gtm-web',
     'gtm-finance', 'gtm-sales', 'gtm-prospector', 'gtm-qa',
   ];
 
@@ -279,7 +279,7 @@ async function main() {
     runtimeConfig: {
       heartbeat: { enabled: true, intervalSec: 600, wakeOnDemand: true },
     },
-    desiredSkills: ['paperclip'],
+    desiredSkills: ['paperclip', 'gtm-director'],
   });
   const ceoId = ceo.id;
   log('✅', `CEO hired: ${ceo.name} (${ceoId})`);
@@ -290,7 +290,7 @@ async function main() {
   const agentDefs = [
     {
       name: 'Strategist',
-      role: 'strategist',
+      role: 'researcher',
       title: 'Market Validation Specialist',
       icon: 'search',
       capabilities: `Market research, competitor analysis, pricing strategy, ICP definition, unit economics calculation. Product: ${PRODUCT_NAME} — ${PRODUCT_DESC}`,
@@ -301,7 +301,7 @@ async function main() {
       name: 'Brand Designer',
       role: 'designer',
       title: 'Brand Identity Designer',
-      icon: 'palette',
+      icon: 'sparkles',
       capabilities: `Product naming, visual identity (colors, typography, logo brief), verbal identity (tone, tagline, elevator pitch), brand guidelines for ${PRODUCT_NAME}.`,
       skill: 'gtm-brand',
       needsRepo: false,
@@ -317,27 +317,27 @@ async function main() {
     },
     {
       name: 'Finance Manager',
-      role: 'finance',
+      role: 'cfo',
       title: 'Payment & Billing Manager',
-      icon: 'wallet',
+      icon: 'lock',
       capabilities: `Payment gateway integration (Stripe/Paddle), checkout flows, invoicing, tax compliance, subscription management for ${PRODUCT_NAME}.`,
       skill: 'gtm-finance',
       needsRepo: true, // needs to integrate payment code
     },
     {
       name: 'Sales Manager',
-      role: 'sales',
+      role: 'pm',
       title: 'CRM & Sales Pipeline Manager',
-      icon: 'handshake',
+      icon: 'target',
       capabilities: `CRM configuration, email sequences, sales decks, proposals, demo scripts, lead nurturing workflows for ${PRODUCT_NAME}.`,
       skill: 'gtm-sales',
       needsRepo: false,
     },
     {
       name: 'Prospector',
-      role: 'marketing',
+      role: 'cmo',
       title: 'Outbound Acquisition Specialist',
-      icon: 'megaphone',
+      icon: 'radar',
       capabilities: `Target company research, cold email campaigns, LinkedIn outreach, directory submissions, partnership outreach for ${PRODUCT_NAME}.`,
       skill: 'gtm-prospector',
       needsRepo: false,
@@ -346,7 +346,7 @@ async function main() {
       name: 'QA Lead',
       role: 'qa',
       title: 'Quality Assurance & Launch Manager',
-      icon: 'shield-check',
+      icon: 'shield',
       capabilities: `End-to-end testing of purchase flows, responsive design QA, copy review, performance testing, launch execution for ${PRODUCT_NAME}.`,
       skill: 'gtm-qa',
       needsRepo: true, // needs to test the actual product
@@ -410,7 +410,8 @@ async function main() {
       const goal = await api('POST', `/api/companies/${companyId}/goals`, {
         title: `Phase ${i + 1}: ${def.title}`,
         description: `GTM Phase ${i + 1} for ${PRODUCT_NAME}. Owned by ${def.agent}.`,
-        projectId,
+        level: 'team',
+        status: 'active',
       });
       goalIds.push(goal.id);
       log('  ✅', `Goal ${i + 1}: ${def.title}`);
@@ -520,8 +521,9 @@ async function main() {
 
       // Add schedule trigger
       await api('POST', `/api/routines/${routine.id}/triggers`, {
-        type: 'schedule',
-        config: { cron: r.schedule },
+        kind: 'schedule',
+        cronExpression: r.schedule,
+        timezone: 'UTC',
       });
 
       log('  ✅', `Routine: ${r.title} (${r.schedule}) [${r.startActive ? 'active' : 'paused'}]`);
