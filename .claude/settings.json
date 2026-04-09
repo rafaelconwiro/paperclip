@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm dev:ui)",
+      "Bash(kill %1)",
+      "Bash(wait)"
+    ]
+  }
+}

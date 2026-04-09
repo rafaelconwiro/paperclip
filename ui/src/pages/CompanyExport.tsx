@@ -28,6 +28,7 @@ import { useAgentOrder } from "../hooks/useAgentOrder";
 import { useProjectOrder } from "../hooks/useProjectOrder";
 import { buildPortableSidebarOrder } from "../lib/company-portability-sidebar";
 import { getPortableFileDataUrl, getPortableFileText, isPortableImageFile } from "../lib/portable-files";
+import { useI18n } from "@/i18n";
 import {
   Download,
   Package,
@@ -403,6 +404,7 @@ function generateReadmeFromSelection(
   checkedFiles: Set<string>,
   companyName: string,
   companyDescription: string | null,
+  t: (key: string, params?: Record<string, string | number>) => string,
 ): string {
   const slugs = checkedSlugs(checkedFiles);
 
@@ -427,19 +429,19 @@ function generateReadmeFromSelection(
     lines.push("");
   }
 
-  lines.push("## What's Inside");
+  lines.push(`## ${t("What's Inside")}`);
   lines.push("");
-  lines.push("This is an [Agent Company](https://paperclip.ing) package.");
+  lines.push(t("This is an [Agent Company](https://paperclip.ing) package."));
   lines.push("");
 
   const counts: Array<[string, number]> = [];
-  if (agents.length > 0) counts.push(["Agents", agents.length]);
-  if (projects.length > 0) counts.push(["Projects", projects.length]);
-  if (skills.length > 0) counts.push(["Skills", skills.length]);
-  if (tasks.length > 0) counts.push(["Tasks", tasks.length]);
+  if (agents.length > 0) counts.push([t("Agents"), agents.length]);
+  if (projects.length > 0) counts.push([t("Projects"), projects.length]);
+  if (skills.length > 0) counts.push([t("Skills"), skills.length]);
+  if (tasks.length > 0) counts.push([t("Tasks"), tasks.length]);
 
   if (counts.length > 0) {
-    lines.push("| Content | Count |");
+    lines.push(`| ${t("Content")} | ${t("Count")} |`);
     lines.push("|---------|-------|");
     for (const [label, count] of counts) {
       lines.push(`| ${label} | ${count} |`);
@@ -448,9 +450,9 @@ function generateReadmeFromSelection(
   }
 
   if (agents.length > 0) {
-    lines.push("### Agents");
+    lines.push(`### ${t("Agents")}`);
     lines.push("");
-    lines.push("| Agent | Role | Reports To |");
+    lines.push(`| ${t("Agent")} | ${t("Role")} | ${t("Reports To")} |`);
     lines.push("|-------|------|------------|");
     for (const agent of agents) {
       const roleLabel = ROLE_LABELS[agent.role] ?? agent.role;
@@ -461,7 +463,7 @@ function generateReadmeFromSelection(
   }
 
   if (projects.length > 0) {
-    lines.push("### Projects");
+    lines.push(`### ${t("Projects")}`);
     lines.push("");
     for (const project of projects) {
       const desc = project.description ? ` \u2014 ${project.description}` : "";
@@ -470,16 +472,18 @@ function generateReadmeFromSelection(
     lines.push("");
   }
 
-  lines.push("## Getting Started");
+  lines.push(`## ${t("Getting Started")}`);
   lines.push("");
   lines.push("```bash");
   lines.push("pnpm paperclipai company import this-github-url-or-folder");
   lines.push("```");
   lines.push("");
-  lines.push("See [Paperclip](https://paperclip.ing) for more information.");
+  lines.push(t("See [Paperclip](https://paperclip.ing) for more information."));
   lines.push("");
   lines.push("---");
-  lines.push(`Exported from [Paperclip](https://paperclip.ing) on ${new Date().toISOString().split("T")[0]}`);
+  lines.push(t("Exported from [Paperclip](https://paperclip.ing) on {date}", {
+    date: new Date().toISOString().split("T")[0] ?? "",
+  }));
   lines.push("");
 
   return lines.join("\n");
@@ -498,9 +502,10 @@ function ExportPreviewPane({
   allFiles: Record<string, CompanyPortabilityFileEntry>;
   onSkillClick?: (skill: string) => void;
 }) {
+  const { t } = useI18n();
   if (!selectedFile || content === null) {
     return (
-      <EmptyState icon={Package} message="Select a file to preview its contents." />
+      <EmptyState icon={Package} message={t("Select a file to preview its contents.")} />
     );
   }
 
@@ -546,7 +551,7 @@ function ExportPreviewPane({
           </pre>
         ) : (
           <div className="rounded-lg border border-border bg-accent/10 px-4 py-3 text-sm text-muted-foreground">
-            Binary asset preview is not available for this file type.
+            {t("Binary asset preview is not available for this file type.")}
           </div>
         )}
       </div>
@@ -578,6 +583,7 @@ function expandAncestors(filePath: string): string[] {
 }
 
 export function CompanyExport() {
+  const { t } = useI18n();
   const { selectedCompanyId, selectedCompany } = useCompany();
   const { setBreadcrumbs } = useBreadcrumbs();
   const { pushToast } = useToast();
@@ -672,10 +678,10 @@ export function CompanyExport() {
 
   useEffect(() => {
     setBreadcrumbs([
-      { label: "Org Chart", href: "/org" },
-      { label: "Export" },
+      { label: t("Org Chart"), href: "/org" },
+      { label: t("Export") },
     ]);
-  }, [setBreadcrumbs]);
+  }, [setBreadcrumbs, t]);
 
   const exportPreviewMutation = useMutation({
     mutationFn: () =>
@@ -719,8 +725,8 @@ export function CompanyExport() {
     onError: (err) => {
       pushToast({
         tone: "error",
-        title: "Export failed",
-        body: err instanceof Error ? err.message : "Failed to load export data.",
+        title: t("Export failed"),
+        body: err instanceof Error ? err.message : t("Failed to load export data."),
       });
     },
   });
@@ -737,15 +743,19 @@ export function CompanyExport() {
       downloadZip(result, resultCheckedFiles, result.files);
       pushToast({
         tone: "success",
-        title: "Export downloaded",
-        body: `${resultCheckedFiles.size} file${resultCheckedFiles.size === 1 ? "" : "s"} exported as ${result.rootPath}.zip`,
+        title: t("Export downloaded"),
+        body: t("{count} file{suffix} exported as {name}.zip", {
+          count: resultCheckedFiles.size,
+          suffix: resultCheckedFiles.size === 1 ? "" : "s",
+          name: result.rootPath,
+        }),
       });
     },
     onError: (err) => {
       pushToast({
         tone: "error",
-        title: "Export failed",
-        body: err instanceof Error ? err.message : "Failed to build export package.",
+        title: t("Export failed"),
+        body: err instanceof Error ? err.message : t("Failed to build export package."),
       });
     },
   });
@@ -796,11 +806,12 @@ export function CompanyExport() {
         checkedFiles,
         companyName,
         companyDescription,
+        t,
       );
     }
 
     return filtered;
-  }, [exportData, checkedFiles, selectedCompany?.name]);
+  }, [exportData, checkedFiles, selectedCompany?.name, t]);
 
   const totalFiles = useMemo(() => countFiles(tree), [tree]);
   const selectedCount = checkedFiles.size;
@@ -911,7 +922,7 @@ export function CompanyExport() {
   }
 
   if (!selectedCompanyId) {
-    return <EmptyState icon={Package} message="Select a company to export." />;
+    return <EmptyState icon={Package} message={t("Select a company to export.")} />;
   }
 
   if (exportPreviewMutation.isPending && !exportData) {
@@ -919,7 +930,7 @@ export function CompanyExport() {
   }
 
   if (!exportData) {
-    return <EmptyState icon={Package} message="Loading export data..." />;
+    return <EmptyState icon={Package} message={t("Loading export data...")} />;
   }
 
   const previewContent = selectedFile
@@ -935,14 +946,21 @@ export function CompanyExport() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-4 text-sm">
             <span className="font-medium">
-              {selectedCompany?.name ?? "Company"} export
+              {t("{name} export", { name: selectedCompany?.name ?? t("Company") })}
             </span>
             <span className="text-muted-foreground">
-              {selectedCount} / {totalFiles} file{totalFiles === 1 ? "" : "s"} selected
+              {t("{selected} / {total} file{suffix} selected", {
+                selected: selectedCount,
+                total: totalFiles,
+                suffix: totalFiles === 1 ? "" : "s",
+              })}
             </span>
             {warnings.length > 0 && (
               <span className="text-amber-500">
-                {warnings.length} warning{warnings.length === 1 ? "" : "s"}
+                {t("{count} warning{suffix}", {
+                  count: warnings.length,
+                  suffix: warnings.length === 1 ? "" : "s",
+                })}
               </span>
             )}
           </div>
@@ -953,8 +971,11 @@ export function CompanyExport() {
           >
             <Download className="mr-1.5 h-3.5 w-3.5" />
             {downloadMutation.isPending
-              ? "Building export..."
-              : `Export ${selectedCount} file${selectedCount === 1 ? "" : "s"}`}
+              ? t("Building export...")
+              : t("Export {count} file{suffix}", {
+                count: selectedCount,
+                suffix: selectedCount === 1 ? "" : "s",
+              })}
           </Button>
         </div>
       </div>
@@ -972,7 +993,7 @@ export function CompanyExport() {
       <div className="grid h-[calc(100vh-12rem)] gap-0 xl:grid-cols-[19rem_minmax(0,1fr)]">
         <aside className="flex flex-col border-r border-border overflow-hidden">
           <div className="border-b border-border px-4 py-3 shrink-0">
-            <h2 className="text-base font-semibold">Package files</h2>
+            <h2 className="text-base font-semibold">{t("Package files")}</h2>
           </div>
           <div className="border-b border-border px-3 py-2 shrink-0">
             <div className="flex items-center gap-2 rounded-md border border-border px-2 py-1">
@@ -981,7 +1002,7 @@ export function CompanyExport() {
                 type="text"
                 value={treeSearch}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder="Search files..."
+                placeholder={t("Search files...")}
                 className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
               />
             </div>
@@ -1003,7 +1024,10 @@ export function CompanyExport() {
                   onClick={() => setTaskLimit((prev) => prev + TASKS_PAGE_SIZE)}
                   className="w-full rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent/30 hover:text-foreground transition-colors"
                 >
-                  Show more issues ({visibleTaskChildren} of {totalTaskChildren})
+                  {t("Show more issues ({visible} of {total})", {
+                    visible: visibleTaskChildren,
+                    total: totalTaskChildren,
+                  })}
                 </button>
               </div>
             )}

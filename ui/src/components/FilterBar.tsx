@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useI18n } from "@/i18n";
 
 export interface FilterValue {
   key: string;
@@ -15,13 +16,14 @@ interface FilterBarProps {
 }
 
 export function FilterBar({ filters, onRemove, onClear }: FilterBarProps) {
+  const { t } = useI18n();
   if (filters.length === 0) return null;
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
       {filters.map((f) => (
         <Badge key={f.key} variant="secondary" className="gap-1 pr-1">
-          <span className="text-muted-foreground">{f.label}:</span>
+          <span className="text-muted-foreground">{t(f.label)}:</span>
           <span>{f.value}</span>
           <button
             className="ml-1 rounded-full hover:bg-accent p-0.5"
@@ -32,7 +34,7 @@ export function FilterBar({ filters, onRemove, onClear }: FilterBarProps) {
         </Badge>
       ))}
       <Button variant="ghost" size="sm" className="text-xs h-6" onClick={onClear}>
-        Clear all
+        {t("Clear all")}
       </Button>
     </div>
   );

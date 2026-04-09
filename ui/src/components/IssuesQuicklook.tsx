@@ -5,6 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { StatusIcon } from "./StatusIcon";
 import { createIssueDetailPath } from "../lib/issueDetailBreadcrumb";
 import { timeAgo } from "../lib/timeAgo";
+import { useI18n } from "@/i18n";
 
 interface IssuesQuicklookProps {
   issue: Issue;
@@ -12,6 +13,7 @@ interface IssuesQuicklookProps {
 }
 
 export function IssuesQuicklook({ issue, children }: IssuesQuicklookProps) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
 
   return (

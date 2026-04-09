@@ -16,6 +16,7 @@ import { ToastViewport } from "./ToastViewport";
 import { MobileBottomNav } from "./MobileBottomNav";
 import { WorktreeBanner } from "./WorktreeBanner";
 import { DevRestartBanner } from "./DevRestartBanner";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useDialog } from "../context/DialogContext";
 import { GeneralSettingsProvider } from "../context/GeneralSettingsContext";
 import { usePanel } from "../context/PanelContext";
@@ -333,6 +334,7 @@ export function Layout() {
                     <Settings className="h-4 w-4" />
                   </Link>
                 </Button>
+                <LanguageSwitcher />
                 <Button
                   type="button"
                   variant="ghost"
@@ -391,6 +393,7 @@ export function Layout() {
                     <Settings className="h-4 w-4" />
                   </Link>
                 </Button>
+                <LanguageSwitcher />
                 <Button
                   type="button"
                   variant="ghost"

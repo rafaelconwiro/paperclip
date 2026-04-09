@@ -14,6 +14,7 @@ import { DialogProvider } from "./context/DialogContext";
 import { EditorAutocompleteProvider } from "./context/EditorAutocompleteContext";
 import { ToastProvider } from "./context/ToastContext";
 import { ThemeProvider } from "./context/ThemeContext";
+import { I18nProvider } from "./i18n";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { initPluginBridge } from "./plugins/bridge-init";
 import { PluginLauncherProvider } from "./plugins/launchers";
@@ -40,6 +41,7 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
+      <I18nProvider>
       <ThemeProvider>
         <BrowserRouter>
           <CompanyProvider>
@@ -65,6 +67,7 @@ createRoot(document.getElementById("root")!).render(
           </CompanyProvider>
         </BrowserRouter>
       </ThemeProvider>
+      </I18nProvider>
     </QueryClientProvider>
   </StrictMode>
 );

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useI18n } from "@/i18n";
 import { Link } from "@/lib/router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Project } from "@paperclipai/shared";
