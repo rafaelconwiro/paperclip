@@ -6,20 +6,26 @@
  * - Goal hierarchy with dependencies
  * - Initial issues for Phase 1
  * - Recurring routines for prospecting and monitoring
+ * - Project workspace connected to your product repo
  * 
  * Usage:
- *   pnpm paperclipai gtm-setup --product-name "MyProduct" --product-description "Description"
+ *   pnpm gtm-setup --product-name "MyProduct" --product-description "Description" --product-repo /path/to/repo
  * 
  * Or run directly:
  *   tsx scripts/gtm-setup.ts --product-name "MyProduct" --product-description "Description"
  */
 
 import { parseArgs } from 'node:util';
+import path from 'node:path';
+import fs from 'node:fs/promises';
 
 const { values: args } = parseArgs({
   options: {
     'product-name': { type: 'string' },
     'product-description': { type: 'string' },
+    'product-repo': { type: 'string' },
+    'product-url': { type: 'string' },
+    'github-repo': { type: 'string' },
     'api-url': { type: 'string', default: 'http://localhost:3100' },
     'api-key': { type: 'string' },
     help: { type: 'boolean', short: 'h' },
@@ -31,20 +37,37 @@ if (args.help) {
   console.log(`
 GTM Launch System — Setup Script
 
-Creates a full Go-To-Market company in Paperclip.
+Creates a full Go-To-Market company in Paperclip with 7 AI agents
+that take your product from "built" to "billing".
 
 Options:
   --product-name         Name of the product to launch (required)
   --product-description  Brief description of the product (required)
+  --product-repo         Local path to the product's code repository
+  --product-url          Live URL of the product (if already deployed)
+  --github-repo          GitHub repo URL (e.g. https://github.com/user/repo)
   --api-url              Paperclip API URL (default: http://localhost:3100)
   --api-key              Board API key (auto-detected if running locally)
   -h, --help             Show this help
+
+Examples:
+  pnpm gtm-setup --product-name "Finam" \\
+    --product-description "Financial management tool for SMEs" \\
+    --product-repo /Users/me/projects/finam \\
+    --github-repo https://github.com/me/finam
+
+  pnpm gtm-setup --product-name "SCHDL" \\
+    --product-description "Enterprise scheduling SaaS" \\
+    --product-repo /Users/me/Desktop/App-Desarrollo/SCHDL
 `);
   process.exit(0);
 }
 
 const PRODUCT_NAME = args['product-name'] as string;
 const PRODUCT_DESC = args['product-description'] as string;
+const PRODUCT_REPO = args['product-repo'] as string | undefined;
+const PRODUCT_URL = args['product-url'] as string | undefined;
+const GITHUB_REPO = args['github-repo'] as string | undefined;
 const API_URL = (args['api-url'] as string) || 'http://localhost:3100';
 const API_KEY = args['api-key'] as string | undefined;
 
@@ -78,6 +101,48 @@ function log(emoji: string, msg: string) {
   console.log(`${emoji}  ${msg}`);
 }
 
+/** Try to read product context from the repo (README, package.json, etc.) */
+async function readProductContext(repoPath: string): Promise<string> {
+  const contextParts: string[] = [];
+
+  // Try README
+  for (const readme of ['README.md', 'readme.md', 'README.txt', 'README']) {
+    try {
+      const content = await fs.readFile(path.join(repoPath, readme), 'utf-8');
+      contextParts.push(`## Product README\n${content.slice(0, 3000)}`);
+      break;
+    } catch { /* not found */ }
+  }
+
+  // Try package.json for tech stack info
+  try {
+    const pkg = JSON.parse(await fs.readFile(path.join(repoPath, 'package.json'), 'utf-8'));
+    const deps = Object.keys(pkg.dependencies || {}).slice(0, 20);
+    const devDeps = Object.keys(pkg.devDependencies || {}).slice(0, 10);
+    contextParts.push(`## Tech Stack\n- Name: ${pkg.name}\n- Dependencies: ${deps.join(', ')}\n- Dev: ${devDeps.join(', ')}`);
+  } catch { /* not found */ }
+
+  // Try pyproject.toml / requirements.txt for Python
+  try {
+    const reqs = await fs.readFile(path.join(repoPath, 'requirements.txt'), 'utf-8');
+    contextParts.push(`## Python Dependencies\n${reqs.slice(0, 1000)}`);
+  } catch { /* not found */ }
+
+  // Try to detect existing web presence
+  const webIndicators: string[] = [];
+  for (const f of ['vercel.json', 'netlify.toml', 'railway.json', 'fly.toml', 'Dockerfile', 'docker-compose.yml']) {
+    try {
+      await fs.access(path.join(repoPath, f));
+      webIndicators.push(f);
+    } catch { /* not found */ }
+  }
+  if (webIndicators.length > 0) {
+    contextParts.push(`## Deployment Config Found\n${webIndicators.join(', ')}`);
+  }
+
+  return contextParts.join('\n\n');
+}
+
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
@@ -85,6 +150,32 @@ function log(emoji: string, msg: string) {
 async function main() {
   log('🚀', `Setting up GTM Launch System for "${PRODUCT_NAME}"`);
   log('📍', `API: ${API_URL}`);
+  if (PRODUCT_REPO) log('📂', `Repo: ${PRODUCT_REPO}`);
+  if (GITHUB_REPO) log('🐙', `GitHub: ${GITHUB_REPO}`);
+  if (PRODUCT_URL) log('🌐', `URL: ${PRODUCT_URL}`);
+
+  // -----------------------------------------------------------------------
+  // 0. Read product context from repo (if provided)
+  // -----------------------------------------------------------------------
+  let productContext = '';
+  if (PRODUCT_REPO) {
+    try {
+      productContext = await readProductContext(PRODUCT_REPO);
+      if (productContext) {
+        log('📖', `Read product context from repo (${productContext.length} chars)`);
+      }
+    } catch (e: any) {
+      log('⚠️', `Could not read repo context: ${e.message}`);
+    }
+  }
+
+  const fullDescription = [
+    PRODUCT_DESC,
+    PRODUCT_URL ? `\nLive URL: ${PRODUCT_URL}` : '',
+    GITHUB_REPO ? `\nGitHub: ${GITHUB_REPO}` : '',
+    PRODUCT_REPO ? `\nLocal repo: ${PRODUCT_REPO}` : '',
+    productContext ? `\n\n---\n\n# Product Context (auto-extracted from repo)\n\n${productContext}` : '',
+  ].join('');
 
   // -----------------------------------------------------------------------
   // 1. Create company
@@ -92,22 +183,43 @@ async function main() {
   log('🏢', 'Creating GTM company...');
   const company = await api('POST', '/api/companies', {
     name: `GTM — ${PRODUCT_NAME}`,
-    goal: `Launch ${PRODUCT_NAME} and reach first paying customers. ${PRODUCT_DESC}`,
+    goal: `Launch ${PRODUCT_NAME} and reach first paying customers.\n\n${PRODUCT_DESC}`,
   });
   const companyId = company.id;
   const prefix = company.prefix || company.identifierPrefix;
   log('✅', `Company created: ${company.name} (${prefix})`);
 
   // -----------------------------------------------------------------------
-  // 2. Create project
+  // 2. Create project + workspace (connected to product repo)
   // -----------------------------------------------------------------------
   log('📁', 'Creating GTM project...');
-  const project = await api('POST', `/api/companies/${companyId}/projects`, {
+
+  const projectPayload: Record<string, any> = {
     name: `${PRODUCT_NAME} Launch`,
-    description: `Go-to-market execution for ${PRODUCT_NAME}`,
-  });
+    description: fullDescription.slice(0, 5000),
+  };
+
+  const project = await api('POST', `/api/companies/${companyId}/projects`, projectPayload);
   const projectId = project.id;
   log('✅', `Project created: ${project.name}`);
+
+  // Attach workspace if repo path or GitHub URL provided
+  if (PRODUCT_REPO || GITHUB_REPO) {
+    log('🔗', 'Connecting product repository as workspace...');
+    try {
+      const wsPayload: Record<string, any> = {
+        name: `${PRODUCT_NAME} codebase`,
+        isPrimary: true,
+      };
+      if (PRODUCT_REPO) wsPayload.cwd = path.resolve(PRODUCT_REPO);
+      if (GITHUB_REPO) wsPayload.repoUrl = GITHUB_REPO;
+
+      await api('POST', `/api/projects/${projectId}/workspaces`, wsPayload);
+      log('✅', 'Workspace connected — agents can now read product code and docs');
+    } catch (e: any) {
+      log('⚠️', `Workspace: ${e.message}`);
+    }
+  }
 
   // -----------------------------------------------------------------------
   // 3. Install skills
@@ -143,6 +255,12 @@ async function main() {
   // 4. Create CEO agent (GTM Director)
   // -----------------------------------------------------------------------
   log('👔', 'Hiring GTM Director (CEO)...');
+
+  const ceoAdapterConfig: Record<string, any> = {
+    model: 'claude-sonnet-4-20250514',
+  };
+  if (PRODUCT_REPO) ceoAdapterConfig.cwd = path.resolve(PRODUCT_REPO);
+
   const ceo = await api('POST', `/api/companies/${companyId}/agents`, {
     name: 'GTM Director',
     role: 'ceo',
@@ -154,11 +272,10 @@ async function main() {
       'Reviews work from specialist agents.',
       'Escalates decisions to the board.',
       'Monitors overall progress and adjusts priorities.',
+      `Product: ${PRODUCT_NAME} — ${PRODUCT_DESC}`,
     ].join(' '),
     adapterType: 'claude_local',
-    adapterConfig: {
-      model: 'claude-sonnet-4-20250514',
-    },
+    adapterConfig: ceoAdapterConfig,
     runtimeConfig: {
       heartbeat: { enabled: true, intervalSec: 600, wakeOnDemand: true },
     },
@@ -176,56 +293,63 @@ async function main() {
       role: 'strategist',
       title: 'Market Validation Specialist',
       icon: 'search',
-      capabilities: 'Market research, competitor analysis, pricing strategy, ICP definition, unit economics calculation.',
+      capabilities: `Market research, competitor analysis, pricing strategy, ICP definition, unit economics calculation. Product: ${PRODUCT_NAME} — ${PRODUCT_DESC}`,
       skill: 'gtm-strategist',
+      needsRepo: false,
     },
     {
       name: 'Brand Designer',
       role: 'designer',
       title: 'Brand Identity Designer',
       icon: 'palette',
-      capabilities: 'Product naming, visual identity (colors, typography, logo brief), verbal identity (tone, tagline, elevator pitch), brand guidelines.',
+      capabilities: `Product naming, visual identity (colors, typography, logo brief), verbal identity (tone, tagline, elevator pitch), brand guidelines for ${PRODUCT_NAME}.`,
       skill: 'gtm-brand',
+      needsRepo: false,
     },
     {
       name: 'Web Builder',
       role: 'engineer',
       title: 'Web Presence Engineer',
       icon: 'globe',
-      capabilities: 'Landing pages, pricing pages, SEO content, legal pages, hosting, analytics, deployment.',
+      capabilities: `Landing pages, pricing pages, SEO content, legal pages, hosting, analytics, deployment for ${PRODUCT_NAME}.`,
       skill: 'gtm-web',
+      needsRepo: true, // needs access to product code
     },
     {
       name: 'Finance Manager',
       role: 'finance',
       title: 'Payment & Billing Manager',
       icon: 'wallet',
-      capabilities: 'Payment gateway integration (Stripe/Paddle), checkout flows, invoicing, tax compliance, subscription management, financial metrics.',
+      capabilities: `Payment gateway integration (Stripe/Paddle), checkout flows, invoicing, tax compliance, subscription management for ${PRODUCT_NAME}.`,
       skill: 'gtm-finance',
+      needsRepo: true, // needs to integrate payment code
     },
     {
       name: 'Sales Manager',
       role: 'sales',
       title: 'CRM & Sales Pipeline Manager',
       icon: 'handshake',
-      capabilities: 'CRM configuration, email sequences, sales decks, proposals, demo scripts, lead nurturing workflows.',
+      capabilities: `CRM configuration, email sequences, sales decks, proposals, demo scripts, lead nurturing workflows for ${PRODUCT_NAME}.`,
       skill: 'gtm-sales',
+      needsRepo: false,
     },
     {
       name: 'Prospector',
       role: 'marketing',
       title: 'Outbound Acquisition Specialist',
       icon: 'megaphone',
-      capabilities: 'Target company research, cold email campaigns, LinkedIn outreach, directory submissions, partnership outreach, response tracking.',
+      capabilities: `Target company research, cold email campaigns, LinkedIn outreach, directory submissions, partnership outreach for ${PRODUCT_NAME}.`,
       skill: 'gtm-prospector',
+      needsRepo: false,
     },
     {
       name: 'QA Lead',
       role: 'qa',
       title: 'Quality Assurance & Launch Manager',
       icon: 'shield-check',
-      capabilities: 'End-to-end testing of purchase flows, responsive design QA, copy review, performance testing, launch execution, post-launch monitoring.',
+      capabilities: `End-to-end testing of purchase flows, responsive design QA, copy review, performance testing, launch execution for ${PRODUCT_NAME}.`,
       skill: 'gtm-qa',
+      needsRepo: true, // needs to test the actual product
     },
   ];
 
@@ -234,6 +358,14 @@ async function main() {
   for (const def of agentDefs) {
     log('🤖', `Hiring ${def.name}...`);
     try {
+      const adapterConfig: Record<string, any> = {
+        model: 'claude-sonnet-4-20250514',
+      };
+      // Agents that need code access get the repo path as cwd
+      if (def.needsRepo && PRODUCT_REPO) {
+        adapterConfig.cwd = path.resolve(PRODUCT_REPO);
+      }
+
       const agent = await api('POST', `/api/companies/${companyId}/agents`, {
         name: def.name,
         role: def.role,
@@ -242,9 +374,7 @@ async function main() {
         reportsTo: ceoId,
         capabilities: def.capabilities,
         adapterType: 'claude_local',
-        adapterConfig: {
-          model: 'claude-sonnet-4-20250514',
-        },
+        adapterConfig,
         runtimeConfig: {
           heartbeat: { enabled: true, intervalSec: 300, wakeOnDemand: true },
         },
@@ -291,38 +421,38 @@ async function main() {
   }
 
   // -----------------------------------------------------------------------
-  // 7. Create Phase 1 issues (kickstart)
+  // 7. Create Phase 1 issues with product context
   // -----------------------------------------------------------------------
   log('📋', 'Creating Phase 1 issues...');
 
   const phase1Tasks = [
     {
       title: 'Define business model type',
-      description: `Determine the revenue model for ${PRODUCT_NAME}: SaaS recurring, one-time purchase, freemium, or enterprise license. Document reasoning based on product type and market.`,
+      description: `Determine the revenue model for ${PRODUCT_NAME}: SaaS recurring, one-time purchase, freemium, or enterprise license.\n\nProduct: ${PRODUCT_DESC}\n${PRODUCT_URL ? `Live URL: ${PRODUCT_URL}` : ''}\n\nRead the product repo README and code to understand what it does, then recommend the best model.`,
     },
     {
       title: 'Define pricing with at least 2 plans',
-      description: 'Analyze competitor pricing, cost of serving, and willingness to pay. Create minimum 2 pricing tiers with clear feature differentiation.',
+      description: `Analyze competitor pricing, cost of serving, and willingness to pay for ${PRODUCT_NAME}.\n\nCreate minimum 2 pricing tiers with clear feature differentiation. Search the web for competitors and their pricing pages.`,
     },
     {
       title: 'Calculate unit economics (CAC, LTV, margins)',
-      description: 'Estimate Customer Acquisition Cost, Lifetime Value, LTV:CAC ratio (must be >3:1), and payback period. Flag if economics need adjustment.',
+      description: `Estimate Customer Acquisition Cost, Lifetime Value, LTV:CAC ratio (must be >3:1), and payback period for ${PRODUCT_NAME}.\n\nFlag if economics need adjustment.`,
     },
     {
       title: 'Define Ideal Customer Profile (ICP)',
-      description: 'Document: target sector, company size, decision-maker role, primary pain point, budget range, and where they hang out online.',
+      description: `Document for ${PRODUCT_NAME}: target sector, company size, decision-maker role, primary pain point, budget range, and where they hang out online.\n\nUse web search to find real companies that match.`,
     },
     {
       title: 'Analyze 3-5 direct competitors',
-      description: 'For each competitor: pricing, key features, positioning, target market, and weaknesses/gaps we can exploit.',
+      description: `Search the web for products competing with ${PRODUCT_NAME}.\n\nFor each: pricing, key features, positioning, target market, and weaknesses/gaps we can exploit. Check Product Hunt, G2, Capterra, and direct competitor websites.`,
     },
     {
       title: 'Build initial list of 20 target companies',
-      description: 'Find 20+ companies matching ICP with company name, website, key contact, and why they are a good fit.',
+      description: `Find 20+ companies matching the ICP for ${PRODUCT_NAME}.\n\nFor each: company name, website, size estimate, key contact (name, title), and why they're a good fit. Use LinkedIn, industry directories, and competitor customer lists.`,
     },
     {
       title: 'Craft value proposition in one sentence',
-      description: 'Formula: "We help [ICP] to [solve problem] so they can [achieve result], unlike [competitor weakness]."',
+      description: `Formula: "We help [ICP] to [solve problem] so they can [achieve result], unlike [competitor weakness]."\n\nMust be specific to ${PRODUCT_NAME}. Test: if you remove any part, it should stop making sense.`,
     },
   ];
 
@@ -351,21 +481,24 @@ async function main() {
   const routineDefs = [
     {
       title: 'Daily prospecting',
-      description: 'Find 5 new target companies matching ICP, generate personalized cold emails, queue for board approval.',
+      description: `Find 5 new target companies for ${PRODUCT_NAME} matching ICP, generate personalized cold emails, queue for board approval.`,
       agent: 'Prospector',
       schedule: '0 9 * * 1-5',
+      startActive: false, // activates after Phase 6 setup
     },
     {
       title: 'Lead follow-up check',
-      description: 'Review CRM for stale leads (no response in 3+ days), generate follow-up emails, update pipeline status.',
+      description: `Review CRM for stale ${PRODUCT_NAME} leads (no response in 3+ days), generate follow-up emails, update pipeline status.`,
       agent: 'Sales Manager',
       schedule: '0 10 * * 1-5',
+      startActive: false,
     },
     {
       title: 'Post-launch monitoring',
-      description: 'Check uptime, error rates, conversion metrics, payment success rate, and user feedback. Report anomalies.',
+      description: `Check ${PRODUCT_NAME} uptime, error rates, conversion metrics, payment success rate, and user feedback. Report anomalies.`,
       agent: 'QA Lead',
       schedule: '*/30 * * * *',
+      startActive: false, // activates on launch day
     },
   ];
 
@@ -380,7 +513,7 @@ async function main() {
         description: r.description,
         assigneeAgentId: agentIds[r.agent],
         projectId,
-        status: r.title.includes('Post-launch') ? 'paused' : 'active',
+        status: r.startActive ? 'active' : 'paused',
         concurrencyPolicy: 'skip_if_active',
         catchUpPolicy: 'skip_missed',
       });
@@ -391,7 +524,7 @@ async function main() {
         config: { cron: r.schedule },
       });
 
-      log('  ✅', `Routine: ${r.title} (${r.schedule})`);
+      log('  ✅', `Routine: ${r.title} (${r.schedule}) [${r.startActive ? 'active' : 'paused'}]`);
     } catch (e: any) {
       log('  ⚠️', `Routine "${r.title}" — ${e.message}`);
     }
@@ -401,20 +534,29 @@ async function main() {
   // Done!
   // -----------------------------------------------------------------------
   console.log('');
-  log('🎉', '═══════════════════════════════════════════════════');
+  log('🎉', '═══════════════════════════════════════════════════════');
   log('🎉', ` GTM Launch System for "${PRODUCT_NAME}" is ready!`);
-  log('🎉', '═══════════════════════════════════════════════════');
+  log('🎉', '═══════════════════════════════════════════════════════');
   console.log('');
-  log('📊', `Dashboard: ${API_URL}/${prefix}/dashboard`);
-  log('👥', `Org chart: ${API_URL}/${prefix}/org`);
-  log('📋', `Issues:    ${API_URL}/${prefix}/issues`);
-  log('🎯', `Goals:     ${API_URL}/${prefix}/goals`);
+  log('📊', `Dashboard:  ${API_URL}/${prefix}/dashboard`);
+  log('👥', `Org chart:  ${API_URL}/${prefix}/org`);
+  log('📋', `Issues:     ${API_URL}/${prefix}/issues`);
+  log('🎯', `Goals:      ${API_URL}/${prefix}/goals`);
+  if (PRODUCT_REPO) {
+    log('📂', `Workspace:  ${PRODUCT_REPO} (connected)`);
+  }
+  console.log('');
+  log('📌', 'How data flows:');
+  log('  ', '• Agents use web search (via Claude Code) to find competitors, companies, pricing');
+  log('  ', '• Agents read your product code/docs from the connected workspace');
+  log('  ', '• Agents share findings via Paperclip issues, comments, and documents');
+  log('  ', '• You (the board) approve before each phase advances');
   console.log('');
   log('💡', 'Next steps:');
   log('  1', 'Open the dashboard and review the org chart');
-  log('  2', 'Check Phase 1 issues assigned to the Strategist');
-  log('  3', `Trigger the Strategist's first heartbeat to begin validation`);
-  log('  4', 'Approve Phase 1 when complete to unlock Phase 2');
+  log('  2', 'Trigger the Strategist heartbeat to start Phase 1');
+  log('  3', 'The Strategist will research your market using web search');
+  log('  4', 'Approve Phase 1 deliverables to unlock Phase 2');
   console.log('');
 }
 

@@ -3,7 +3,10 @@
     "allow": [
       "Bash(pnpm dev:ui)",
       "Bash(kill %1)",
-      "Bash(wait)"
+      "Bash(wait)",
+      "Bash(openssl rand:*)",
+      "Bash(curl -sL https://cli.github.com/packages/githubcli-archive-keyring.gpg)",
+      "Bash(curl -s http://localhost:3100 -o /dev/null -w \"%{http_code} %{redirect_url}\")"
     ]
   }
 }
