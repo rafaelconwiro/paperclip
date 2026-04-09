@@ -308,6 +308,7 @@ export async function onboard(opts: OnboardOptions): Promise<void> {
         `Run: ${pc.cyan("paperclipai run")}`,
         `Reconfigure later: ${pc.cyan("paperclipai configure")}`,
         `Diagnose setup: ${pc.cyan("paperclipai doctor")}`,
+        `Launch a product: ${pc.cyan("paperclipai gtm")} ${pc.dim("(creates a GTM company with 7 AI agents)")}`,
       ].join("\n"),
       "Next commands",
     );
@@ -536,6 +537,7 @@ export async function onboard(opts: OnboardOptions): Promise<void> {
       `Run: ${pc.cyan("paperclipai run")}`,
       `Reconfigure later: ${pc.cyan("paperclipai configure")}`,
       `Diagnose setup: ${pc.cyan("paperclipai doctor")}`,
+      `Launch a product: ${pc.cyan("paperclipai gtm")} ${pc.dim("(creates a GTM company with 7 AI agents)")}`,
     ].join("\n"),
     "Next commands",
   );

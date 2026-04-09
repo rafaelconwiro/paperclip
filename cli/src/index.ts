@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import { gtmCommand } from "./commands/gtm.js";
 import { onboard } from "./commands/onboard.js";
 import { doctor } from "./commands/doctor.js";
 import { envCommand } from "./commands/env.js";
@@ -160,6 +161,18 @@ auth
   .action(bootstrapCeoInvite);
 
 registerClientAuthCommands(auth);
+
+// GTM Launch System
+const gtm = program
+  .command("gtm")
+  .description("Create a Go-To-Market company with 7 AI agents to launch a product")
+  .option("-c, --config <path>", "Path to config file")
+  .option("-d, --data-dir <path>", DATA_DIR_OPTION_HELP)
+  .option("--context <path>", "Path to CLI context file")
+  .option("--profile <n>", "CLI context profile name")
+  .option("--api-base <url>", "Base URL for the Paperclip API")
+  .option("--api-key <token>", "Bearer token")
+  .action(gtmCommand);
 
 async function main(): Promise<void> {
   let failed = false;
