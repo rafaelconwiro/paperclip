@@ -104,6 +104,38 @@ Set up tracking for:
 - Integration code goes in the project workspace
 - Issue documents: `payment-setup`, `tax-compliance`, `financial-metrics`
 
+## Execution on Approval
+
+When the board approves your deliverables, you MUST execute these steps automatically:
+
+### Auto-commit payment integration
+```bash
+cd $PROJECT_CWD
+git add -A
+git commit -m "feat(gtm): integrate payment gateway, checkout flow, invoicing
+
+Co-Authored-By: Paperclip <noreply@paperclip.ing>"
+git push origin main
+```
+
+### Activate live payments
+1. Switch Stripe/Paddle from test mode to live mode
+2. Verify webhook endpoints are reachable
+3. Run one test transaction with a real card (small amount, then refund)
+4. Confirm invoice was generated correctly
+
+### Post-execution verification
+1. Complete a full checkout flow on the live site
+2. Verify payment appears in Stripe/Paddle dashboard
+3. Verify invoice PDF was generated and emailed
+4. Post confirmation as issue comment with screenshots/links
+
+### Update issue status
+```json
+PATCH /api/issues/{issueId}
+{ "status": "done", "comment": "Payment integration live. Test transaction verified. Invoice confirmed." }
+```
+
 ## Approval Gate
 
 Request board approval after test checkout works end-to-end before enabling live payments.

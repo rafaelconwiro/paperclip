@@ -159,6 +159,53 @@ Monitor:
 - Launch checklist as issue document `launch-checklist`
 - Post-launch metrics as daily issue documents `launch-day-1`, `launch-day-2`
 
+## Execution on Approval (LAUNCH)
+
+When the board gives the final "GO" approval, execute the launch sequence automatically:
+
+### Step 1 — Final smoke test
+```bash
+cd $PROJECT_CWD
+curl -sI $LIVE_URL | head -5  # verify 200
+npx lighthouse $LIVE_URL --output=json --quiet | jq '.categories.performance.score'
+```
+
+### Step 2 — Enable live payments (if not already)
+Verify Stripe/Paddle is in live mode.
+
+### Step 3 — Activate routines
+```json
+PATCH /api/routines/{dailyProspectingId}
+{ "status": "active" }
+
+PATCH /api/routines/{leadFollowupId}
+{ "status": "active" }
+
+PATCH /api/routines/{postLaunchMonitorId}
+{ "status": "active" }
+```
+
+### Step 4 — Send launch communications
+Create issues for the Prospector to execute:
+- Send launch email to waitlist/contacts
+- Publish LinkedIn post
+- Submit to Product Hunt / directories
+
+### Step 5 — Start monitoring
+Begin the 48h post-launch monitoring routine. Report every 30 min:
+- Uptime status
+- Error count
+- Visitor count
+- Signup count
+- Payment count
+- User feedback
+
+### Step 6 — Post launch confirmation
+```json
+PATCH /api/issues/{launchIssueId}
+{ "status": "done", "comment": "LAUNCHED. Monitoring active. First metrics in 30 min." }
+```
+
 ## Approval Gate
 
 **This is the final gate.** Request board approval with full QA report attached. Only after board says "GO" does the launch sequence begin.

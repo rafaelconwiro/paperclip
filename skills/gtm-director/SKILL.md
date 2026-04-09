@@ -166,6 +166,54 @@ Phase 1 (Validation) ───────────────────�
 
 After Phase 1 is approved, create issues for BOTH Phase 2 AND Phase 4 simultaneously. This saves time.
 
+## Approval-Triggered Execution Chain
+
+When the board approves a phase, the chain is AUTOMATIC:
+
+```
+Board clicks "Approve" on Phase N
+  ↓ Paperclip wakes you with PAPERCLIP_APPROVAL_ID
+  ↓ You verify deliverables are complete
+  ↓ You create issues for Phase N+1 (assigned to the right agent)
+  ↓ Paperclip auto-wakes the assigned agent (wakeOnDemand: true)
+  ↓ Agent checks out the issue and starts working
+  ↓ Agent commits code / creates docs / deploys
+  ↓ Agent marks issue done and requests next approval
+  ↓ Board sees the approval request with deliverables
+  ↓ Board clicks "Approve" → cycle repeats
+```
+
+The board ONLY needs to click "Approve" or "Request Changes". Everything else is automatic.
+
+### On approval wake, execute this sequence:
+
+1. Read the approval: `GET /api/approvals/{PAPERCLIP_APPROVAL_ID}`
+2. Read linked issues: `GET /api/approvals/{PAPERCLIP_APPROVAL_ID}/issues`
+3. Mark the phase goal as achieved: `PATCH /api/goals/{goalId}` with `{"status": "achieved"}`
+4. Determine which phases are now unblocked (see dependency table)
+5. Create ALL issues for the unblocked phases simultaneously
+6. Each issue creation auto-wakes the assigned agent
+7. Post a status update: "Phase N approved. Phases X, Y now in progress."
+
+### Critical: include execution instructions in every issue
+
+When creating issues for code-touching agents, ALWAYS include:
+- `"description"` with explicit instruction to commit and deploy on completion
+- Reference to previous phase deliverables (link to issue documents)
+- The live URL if available
+- The repo path
+
+Example issue for Web Builder:
+```json
+{
+  "title": "Build and deploy landing page",
+  "description": "Build the landing page using brand identity from Phase 2.\n\nBrand kit: [link to brand-kit document]\nPricing: [link to pricing document]\nValue prop: [link to value-proposition document]\n\nWhen complete: git commit, deploy to Vercel, verify live URL, post URL in comment.",
+  "assigneeAgentId": "web-builder-id",
+  "status": "todo",
+  "priority": "high"
+}
+```
+
 ## Error Handling
 
 - If an agent gets stuck, check their issue comments for blockers

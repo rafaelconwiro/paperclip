@@ -107,6 +107,40 @@ Code deliverables go into the project workspace. Configuration and content docs 
 - `seo-keywords` — target keywords with search volume estimates
 - `tech-setup-checklist` — infrastructure configuration status
 
+## Execution on Approval
+
+When the board approves your deliverables, you MUST execute these steps automatically:
+
+### Auto-commit
+```bash
+cd $PROJECT_CWD
+git add -A
+git commit -m "feat(gtm): add landing page, pricing, SEO content, legal pages
+
+Co-Authored-By: Paperclip <noreply@paperclip.ing>"
+git push origin main
+```
+
+### Auto-deploy
+Detect the deployment platform from the repo and deploy:
+- If `vercel.json` exists → `npx vercel --prod`
+- If `netlify.toml` exists → `npx netlify deploy --prod`
+- If `Dockerfile` exists → build and push
+- If `railway.json` exists → `railway up`
+- Otherwise → create a `vercel.json` and deploy to Vercel
+
+### Post-deploy verification
+1. Verify the live URL responds with 200
+2. Check all pages load (landing, pricing, legal)
+3. Verify analytics script is firing
+4. Post the live URL as a comment on the issue
+
+### Update issue status
+```json
+PATCH /api/issues/{issueId}
+{ "status": "done", "comment": "Deployed to [URL]. All pages verified." }
+```
+
 ## Approval Gate
 
 Request board review of landing page design and copy before going live.
