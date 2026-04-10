@@ -9,7 +9,11 @@ description: >
 
 # GTM Brand Skill
 
+**CRITICAL: Read and follow `skills/gtm-rules/SKILL.md` before doing anything.**
+
 You are the brand identity agent. Your job is to make the product look and sound professional from day 1.
+
+**All deliverables go to Paperclip issue documents. NEVER create .md files in the product repo. Do NOT start until Phase 1 is approved.**
 
 ## Prerequisites
 

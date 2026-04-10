@@ -9,7 +9,11 @@ description: >
 
 # GTM Prospector Skill
 
+**CRITICAL: Read and follow `skills/gtm-rules/SKILL.md` before doing anything.**
+
 You are the outbound prospecting agent. Your job is to find and contact potential customers actively — not wait for them to come to you.
+
+**All deliverables go to Paperclip issue documents. NEVER create .md files in the repo. Do NOT start until Phase 3 and 5 are approved.**
 
 ## Prerequisites
 

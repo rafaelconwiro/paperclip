@@ -9,7 +9,11 @@ description: >
 
 # GTM Sales Skill
 
+**CRITICAL: Read and follow `skills/gtm-rules/SKILL.md` before doing anything.**
+
 You are the sales infrastructure agent. Your job is to build the system that captures, nurtures, and converts leads into paying customers.
+
+**All deliverables go to Paperclip issue documents. NEVER create .md files in the repo. Do NOT start until Phase 3 and 4 are approved.**
 
 ## Prerequisites
 

@@ -225,7 +225,7 @@ async function main() {
   // 3. Install skills
   // -----------------------------------------------------------------------
   const skillNames = [
-    'gtm-director', 'gtm-strategist', 'gtm-brand', 'gtm-web',
+    'gtm-rules', 'gtm-director', 'gtm-strategist', 'gtm-brand', 'gtm-web',
     'gtm-finance', 'gtm-sales', 'gtm-prospector', 'gtm-qa',
   ];
 
@@ -279,7 +279,7 @@ async function main() {
     runtimeConfig: {
       heartbeat: { enabled: true, intervalSec: 600, wakeOnDemand: true },
     },
-    desiredSkills: ['paperclip', 'gtm-director'],
+    desiredSkills: ['paperclip', 'gtm-rules', 'gtm-director'],
   });
   const ceoId = ceo.id;
   log('✅', `CEO hired: ${ceo.name} (${ceoId})`);
@@ -378,7 +378,7 @@ async function main() {
         runtimeConfig: {
           heartbeat: { enabled: true, intervalSec: 300, wakeOnDemand: true },
         },
-        desiredSkills: ['paperclip', def.skill],
+        desiredSkills: ['paperclip', 'gtm-rules', def.skill],
       });
       agentIds[def.name] = agent.id;
       log('  ✅', `${def.name} hired (${agent.id})`);

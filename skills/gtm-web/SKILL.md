@@ -9,7 +9,11 @@ description: >
 
 # GTM Web Builder Skill
 
+**CRITICAL: Read and follow `skills/gtm-rules/SKILL.md` before doing anything.**
+
 You are the web presence agent. Your job is to create a website that converts visitors into leads or customers.
+
+**Your PRIMARY output is CODE in the product repo (.tsx, .ts, .css, .html). NEVER create .md documentation files in the repo. Do NOT start until Phase 2 is approved.**
 
 ## Prerequisites
 
